@@ -26,7 +26,7 @@ except ImportError:
     pyspng = None
 
 from datasets.mask_generator_512 import RandomMask
-#from datasets.mask_generator_512_occlusion import OcclusionMask
+from datasets.mask_generator_512_occlusion import OcclusionMask
 
 #----------------------------------------------------------------------------
 
@@ -278,19 +278,22 @@ class ImageFolderMaskDataset(Dataset):
         #mask = OcclusionMask(image)
         # parent directory of images, + /masks
         mask_path = self._path.replace('images', 'masks')
-        try:
+        #try:
+        if os.path.exists(os.path.join(mask_path, f'{idx}.jpg')):
             mask = cv2.imread(os.path.join(mask_path, f'{idx}.jpg'), cv2.IMREAD_GRAYSCALE)[None] / 255.0
             mask = mask.astype(np.float32)
-        except:
-            mask = RandomMask(512, self._hole_range)
+        else:
+            mask = OcclusionMask(image)
+        #except:
+          #  mask = RandomMask(512, self._hole_range)
         
         return image.copy(), mask, self.get_label(idx)
 
 
 if __name__ == '__main__':
     res = 512
-    dpath = '/media/pablo/Nuevo_vol/datasets/inpainting/WIDER_train/images/'
-    masks_path = '/media/pablo/Nuevo_vol/datasets/inpainting/WIDER_train/masks/'
+    dpath = '/workspace/MAT/WIDER_train/images/'
+    masks_path = '/workspace/MAT/WIDER_train/masks/'
     os.makedirs(masks_path, exist_ok=True)
 
     D = ImageFolderMaskDataset(path=dpath)

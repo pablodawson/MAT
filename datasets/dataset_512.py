@@ -25,7 +25,7 @@ try:
 except ImportError:
     pyspng = None
 
-from datasets.mask_generator_512_occlusion import OcclusionMask
+from datasets.mask_generator_256 import RandomMask
 
 #----------------------------------------------------------------------------
 
@@ -274,7 +274,14 @@ class ImageFolderMaskDataset(Dataset):
         if self._xflip[idx]:
             assert image.ndim == 3 # CHW
             image = image[:, :, ::-1]
-        mask = OcclusionMask(image)
+        
+        mask_path = self._path.replace('images', 'masks')
+        if os.path.exists(os.path.join(mask_path, f'{idx}.jpg')):
+            mask = cv2.imread(os.path.join(mask_path, f'{idx}.jpg'), cv2.IMREAD_GRAYSCALE)[None] / 255.0
+            mask = mask.astype(np.float32)
+        else:
+            mask = RandomMask(512, self._hole_range)
+        
         return image.copy(), mask, self.get_label(idx)
 
 
