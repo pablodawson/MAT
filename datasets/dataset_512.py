@@ -8,12 +8,16 @@
 
 import cv2
 import os
+
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import numpy as np
 import zipfile
 import PIL.Image
 import json
 import torch
-import dnnlib
+from dnnlib.util import EasyDict
 import random
 
 try:
@@ -21,7 +25,7 @@ try:
 except ImportError:
     pyspng = None
 
-from datasets.mask_generator_512 import RandomMask
+from datasets.mask_generator_512_occlusion import OcclusionMask
 
 #----------------------------------------------------------------------------
 
@@ -105,7 +109,7 @@ class Dataset(torch.utils.data.Dataset):
         return label.copy()
 
     def get_details(self, idx):
-        d = dnnlib.EasyDict()
+        d = EasyDict()
         d.raw_idx = int(self._raw_idx[idx])
         d.xflip = (int(self._xflip[idx]) != 0)
         d.raw_label = self._get_raw_labels()[d.raw_idx].copy()
@@ -270,17 +274,19 @@ class ImageFolderMaskDataset(Dataset):
         if self._xflip[idx]:
             assert image.ndim == 3 # CHW
             image = image[:, :, ::-1]
-        mask = RandomMask(image.shape[-1], hole_range=self._hole_range)  # hole as 0, reserved as 1
+        mask = OcclusionMask(image)
         return image.copy(), mask, self.get_label(idx)
 
 
 if __name__ == '__main__':
     res = 512
-    dpath = '/data/liwenbo/datasets/Places365/standard/val_large'
+    dpath = '/media/pablo/Nuevo_vol/datasets/inpainting/WIDER_train/images/'
     D = ImageFolderMaskDataset(path=dpath)
     print(D.__len__())
     for i in range(D.__len__()):
         print(i)
         a, b, c = D.__getitem__(i)
+        cv2.imwrite('test.jpg', a.transpose(1, 2, 0))
+        cv2.imwrite('mask.jpg', b[0] * 255)
         if a.shape != (3, 512, 512):
             print(i, a.shape)
